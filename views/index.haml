@@ -1,0 +1,33 @@
+!!!
+%html
+  %head
+    %title Banking
+    %script{:src => '/js/jquery.min.js', :type => "text/javascript"}
+    %script{:src => "/js/highcharts.js"}
+    %script{:src => "/js/bootstrap.min.js"}
+    %script{:src => '/js/transactions.js', :type => "text/javascript"}
+    %script{:src => '/js/accounts.js', :type => "text/javascript"}
+    %script{:src => '/js/base.js', :type => "text/javascript"}
+    %link{:href => '/css/bootstrap.min.css', :rel => 'stylesheet'}
+    %link{:href => '/sass/default.sass', :rel => 'stylesheet'}
+  %body
+    .navbar
+      .navbar-inner
+        %a.brand Test
+        %ul.nav
+          %li.dropdown
+            %a.dropdown-toggle{:"data-toggle" => "dropdown"}
+              Transaktioner
+              %b.caret
+            %ul.dropdown-menu#transactions
+    #graphs
+      #expenses
+
+    #transactionDialog.modal{:class => "hide"}
+      .modal-header
+        %h3 Kategorisera transaktion
+      .modal-body
+        .transactionInfo
+        %select.accountSelect{:type => 'select'}
+      .modal-footer
+        .submit{:class => 'btn btn-primary'} Spara
