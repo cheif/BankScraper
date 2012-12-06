@@ -1,80 +1,58 @@
-require 'curb'
-require 'nokogiri'
-require 'date'
+# encoding: UTF-8
+
+require 'rubygems'
+require 'mechanize'
 require './models.rb'
 
 class Swedbank
     def initialize(user)
-        @baseurl = "https://mobilbank.swedbank.se"
+        @baseurl = "https://internetbank.swedbank.se"
         @user = user
+        @agent = Mechanize.new
+        @agent.user_agent_alias = 'Mac Safari'
         self.login()
     end
 
     def login()
-        loginpage = Curl::Easy.perform(@baseurl + "/banking/swedbank/login.html") do |curl|
-            curl.headers["User-Agent"] = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_5) AppleWebKit/537.4 (KHTML, like Gecko) Chrome/22.0.1229.94 Safari/537.4"
+        authidpage = @agent.get(@baseurl + "/bviPrivat/privat?ns=1")
+        authform = authidpage.form('form1')
+        login1page = @agent.submit(authform, authform.buttons.first)
+        login1form = login1page.form('auth')
+        login1form['auth:kundnummer'] = @user.pnr
+        login1form.field_with(:name => 'auth:metod_2').options[3].select
+        login2page = @agent.submit(login1form, login1form.buttons.first)
+        login2form = login2page.form('form')
+        login2form['form:pinkod'] = @user.pin
+        redirectpage = @agent.submit(login2form, login2form.buttons.first)
+        redirectform = redirectpage.form('redirectForm')
+        
+        #Probably only necessary for VUB
+        startpage = @agent.submit(redirectform, redirectform.buttons.first)
+        accountpage = startpage.link_with(:text => 'Dan Berglund').click
+        transactionpage = accountpage.link_with(:text => 'Privatkonto').click
+        transactionpage = transactionpage.link_with(:text => 'Visa alla').click
+        while (tp = transactionpage.link_with(:text => 'Hämta fler'))
+            transactionpage = tp.click
         end
-        noko = Nokogiri::HTML(loginpage.body_str)
-        csrf_token = noko.xpath('//input[@name = "_csrf_token"]')[0]['value']
+        @transactionpage = transactionpage
 
-        @cookie = /Set-Cookie: (.*)/.match(loginpage.header_str)[1]
-        loginresp = Curl::post(@baseurl + "/banking/swedbank/login.html", {
-            :_csrf_token => csrf_token,
-            :xyz => @user.pnr,
-            :zyx => @user.pin
-        }) do |curl|
-            curl.headers['Cookie'] = @cookie
-        end
-        @cookie = /Set-Cookie: (.*?; )/.match(loginresp.header_str)[1]
     end
 
-    def scrapeAccounts()
-        accountpage = Curl::Easy.perform(@baseurl + "/banking/swedbank/accounts.html") do |curl|
-            curl.headers['Cookie'] = @cookie
-        end
-        noko = Nokogiri::HTML(accountpage.body_str)
-        accountList = []
-        noko.xpath('//dd/a').each{ |acc|
-            account = Bankaccount.create(
-                :name => acc.xpath('span[@class="name"]').first.content,
-                :href => acc['href'],
-                :balance => acc.xpath('span[@class="amount"]').first.content.gsub(/\s/,"").to_i,
-                :user => @user
-            )
-            accountList << account
-        }
-        return accountList
-    end
-
-    def scrapeTransactions(account)
-        newest = account.transactions.last
-        last = nil
-        cont = true
-        while cont
-            accountpage = Curl::Easy.perform(@baseurl + account.href + "&action=next") do |curl|
-                curl.headers['Cookie'] = @cookie
+    def scrapeTransactions()
+        transactions = @transactionpage.search("//div[@class='sektion-innehall2']/table")[-1].search('.//tr')
+        transactions.each{|raw_trans|
+            data = raw_trans.search('.//td')
+            if !data.empty? && data.length > 3
+                amount = data[4].search('./span').first.content.strip
+                amount = amount.gsub(/\s+/,"")
+                trans = Transaction.create(
+                    :date => data[0].search('./span').first.content.strip,
+                    :receiver => data[2].content.strip,
+                    :amount => amount.to_i,
+                    :user => @user
+                )
+                pp trans
             end
-            noko = Nokogiri::HTML(accountpage.body_str)
-            noko.xpath('//dl[@class = "list-content"]//div').each{ |transaction|
-                receiver = transaction.xpath('span[@class="receiver"]')
-                if receiver.to_s != "" && receiver.first.content.strip != "SKYDDAT BELOPP"
-                    amount = transaction.xpath('span[@class="amount"]').first.content.strip
-                    amount = amount.gsub(/\s+/,"")
-                    trans = Transaction.create(
-                        :date => Date.parse(transaction.xpath('span[@class="date"]').first.content.strip),
-                        :receiver => receiver.first.content.strip,
-                        :amount => amount.to_i,
-                        :bankaccount => account
-                    )
-                    puts trans.inspect
-                    #Need this check since &action=next will give circular results
-                    if trans == newest or (last && last.date < trans.date)
-                        cont = false
-                        break
-                    end
-                    last = trans
-                end
-            }
-        end
+        }
     end
 end

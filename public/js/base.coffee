@@ -25,6 +25,18 @@ $ ->
                 text: 'SEK'
             },
         },
+        tooltip: {
+            formatter: ->
+                data = @series.options.detailedData[@point.x]
+                str = "<h4>" + @series.name + " - " + @x + "</h4>"
+                str += "<table><tbody><tr><th>Mottagare</th><th>Kostnad</th></tr>"
+                for trans in data
+                    str += "<tr><td>" + trans.receiver + "</td><td>" + -trans.amount + "</td></tr>"
+                str += "<tr><td><b>Totalt:</b></td><td>" + @y + "</td></tr>"
+                str += "</tbody></table>"
+                return str
+            useHTML: true
+        },
         plotOptions: {
             column: {
                 stacking: 'normal',

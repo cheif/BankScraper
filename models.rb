@@ -1,7 +1,7 @@
 require 'rubygems'
 require 'data_mapper'
 
-DataMapper::Logger.new($stdout, :debug)
+#DataMapper::Logger.new($stdout, :debug)
 
 DataMapper.setup(:default, "sqlite://#{File.expand_path(File.dirname(__FILE__))}/test.db")
 
@@ -12,20 +12,7 @@ class User
     property :pnr,      String
     property :pin,      String
 
-    has n, :bankaccounts
     has n, :accounts
-end
-
-class Bankaccount
-    #Representation of the banks accounts
-    include DataMapper::Resource
-
-    property :id,       Serial
-    property :name,     String
-    property :href,     String
-    property :balance,  Integer
-
-    belongs_to :user
     has n, :transactions
 end
 
@@ -60,7 +47,7 @@ class Transaction
     property :amount,   Integer
     property :date,     DateTime
 
-    belongs_to :bankaccount
+    belongs_to :user
     belongs_to :account, :required => false
 
     def self.noAccount

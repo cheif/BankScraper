@@ -21,12 +21,12 @@ get '/transactions' do
     withoutAccount.each{|transaction|
         transaction.apply(filters)
     }
-    @user.bankaccounts.transactions.to_json
+    @user.transactions.to_json
 end
 
 get '/transactions/uncat' do
     @user = User.first
-    withoutAccount = @user.bankaccounts.transactions.noAccount()
+    withoutAccount = @user.transactions.noAccount()
     filters = @user.accounts.filters
     withoutAccount.each{|transaction|
         transaction.apply(filters)
@@ -36,14 +36,14 @@ end
 
 post '/transaction/:id/addAccount/:accid' do
     @user = User.first
-    trans = @user.bankaccounts.transactions.get(params[:id])
+    trans = @user.transactions.get(params[:id])
     trans.account = @user.accounts.get(params[:accid])
     trans.save
 end
 
 get '/expenses' do
     @user = User.first
-    expenses = @user.bankaccounts.transactions.expenses.hasAccount
+    expenses = @user.transactions.expenses.hasAccount
     expenses.to_json
 end
 
@@ -76,7 +76,15 @@ get '/expenses/month' do
                 else
                     0
                 end
-            }
+            },
+            :detailedData =>
+            response[:labels].map{|month|
+                if account[:data][month]
+                    account[:data][month]
+                else
+                    0
+                end
+            },
         }
     }
     response.to_json
