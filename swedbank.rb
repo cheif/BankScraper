@@ -47,7 +47,7 @@ class Swedbank
         #scrapes all transactions and saves them in db
         #TODO Only fetch new transactions
         transactions = @transactionpage.search("//div[@class='sektion-innehall2']/table")[-1].search('.//tr')
-        transactions.each{|raw_trans|
+        transactions.reverse.each{|raw_trans|
             data = raw_trans.search('.//td')
             if !data.empty? && data.length > 3
                 amount = data[4].search('./span').first.content.strip
