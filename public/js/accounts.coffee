@@ -1,5 +1,7 @@
 class Accounts
+    #A class representing various accounts
     constructor: ->
+        #Construct and fetch accounts from backend
         @accounts = []
         @fetchAccounts()
         $('#accounts').on('click', '.account', (evt) =>
@@ -7,6 +9,7 @@ class Accounts
         )
 
     fetchAccounts: ->
+        #Fetch accounts and save in @
         $.getJSON('/accounts', (accounts) =>
             for account in accounts
                 @accounts[account.id] = account
@@ -15,6 +18,7 @@ class Accounts
         )
 
     populateDropdown: ->
+        #Populate the account-dropdown
         $('#accounts').empty()
         for account in @accounts
             if account
@@ -22,12 +26,14 @@ class Accounts
         $('#accounts').append('<li class="account"><a class="newAccount">Lägg till konto..</a></li>')
     
     populateDialog: ->
+        #Populate the transaction-dialog
         $('.accountSelect').empty()
         for account in @accounts
             if account
                 $('.accountSelect').append('<option value=' + account.id + '>' + account.name + '</option>')
 
     accountDialog: (id) ->
+        #Populate and show the account-dialog
         dialog = $('#accountDialog')
         dialog.find('tbody').empty()
         if id == "newAccount"

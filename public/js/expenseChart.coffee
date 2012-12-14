@@ -1,5 +1,7 @@
 class ExpenseChart
+    #Responsible for displaying the expense-chart
     constructor: ->
+        #Set options for highchart
         @options = {
             chart: {
                 renderTo: 'expenses',
@@ -50,8 +52,10 @@ class ExpenseChart
             },
             series: []
         }
+        @updateChart()
     
     updateChart: ->
+        #Fetch data and update chart
         $.getJSON('/expenses/month', (data) =>
             @options.xAxis.categories = data.labels
             @options.series = data.series

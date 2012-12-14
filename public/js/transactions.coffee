@@ -1,6 +1,8 @@
 class Transactions
+    #Represents transactions
 
     constructor: ->
+        #Construct and fetch transactions
         @uncatTransactions = []
         @fetchTransactions()
         $('#transactions').on('click', '.transaction', (evt) =>
@@ -20,6 +22,7 @@ class Transactions
         )
 
     doRegex: (regEx)->
+        #Return transactions which matches the regex
         regex = new RegExp('^'+regEx+'$', 'i')
         res = []
         for trans in @uncatTransactions
@@ -28,9 +31,11 @@ class Transactions
         return res
 
     findSimilar: (transaction)->
+        #Return transactions similar to this one
         return @doRegex(transaction.receiver)
 
     transactionDialog: (id)->
+        #Populate and show the transaction dialog
         trans = @uncatTransactions[id]
         transactionTable = ""
         for transaction in @findSimilar(trans)
