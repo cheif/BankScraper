@@ -6,6 +6,7 @@ require 'data_mapper'
 DataMapper.setup(:default, "sqlite://#{File.expand_path(File.dirname(__FILE__))}/test.db")
 
 class User
+    #A user, with login to internetbank
     include DataMapper::Resource
 
     property :id,       Serial
@@ -29,7 +30,7 @@ class Account
 end
 
 class Filter
-    #Filter receiver to select appropriate account
+    #Filter used for automatic categorization through regex
     include DataMapper::Resource
 
     property :id,       Serial
@@ -40,6 +41,7 @@ class Filter
 end
 
 class Transaction
+    #A transaction, our main data-type
     include DataMapper::Resource
 
     property :id,       Serial
@@ -51,14 +53,17 @@ class Transaction
     belongs_to :account, :required => false
 
     def self.noAccount
+        #Return all transactions that haven't got a account associated yet.
         all(:account => nil)
     end
 
     def self.hasAccount
+        #Return all transactions that have a account associated.
         all(:account.not => nil)
     end
 
     def apply(filterList)
+        #Apply filters to this account, add a account if a filter-match is found.
         filterList.each{|filter|
             reg = /^#{filter.regexp}$/i
             p self.receiver
