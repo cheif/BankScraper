@@ -2,6 +2,7 @@ require 'rubygems'
 require 'sinatra'
 require 'sinatra/reloader' if development?
 require 'haml'
+require 'json'
 require 'sass'
 require 'rack/coffee'
 require './models.rb'
@@ -10,46 +11,34 @@ use Rack::Coffee,
     :root => 'public',
     :urls => '/js'
 
-get '/' do
-    haml :index
+get '/sass/default.sass' do
+    sass :default
 end
 
-get '/transactions' do
-    @user = User.first
-    withoutAccount = @user.bankaccounts.transactions.noAccount()
-    filters = @user.accounts.filters
-    withoutAccount.each{|transaction|
-        transaction.apply(filters)
-    }
-    @user.transactions.to_json
+get '/' do
+    haml :index
 end
 
 get '/transactions/uncat' do
     @user = User.first
     withoutAccount = @user.transactions.noAccount()
-    filters = @user.accounts.filters
-    withoutAccount.each{|transaction|
-        transaction.apply(filters)
-    }
     withoutAccount.to_json
 end
 
-post '/transaction/:id/addAccount/:accid' do
+post '/transactions/addAccount/' do
     @user = User.first
-    trans = @user.transactions.get(params[:id])
-    trans.account = @user.accounts.get(params[:accid])
-    trans.save
-end
 
-get '/expenses' do
-    @user = User.first
-    expenses = @user.transactions.expenses.hasAccount
-    expenses.to_json
+    for id in params[:ids]
+        trans = @user.transactions.get(id)
+        trans.account = @user.accounts.get(params[:account])
+        trans.save
+    end
 end
 
 get '/expenses/month' do
     @user = User.first
-    expenses = @user.accounts.transactions.all(:order => [:date.asc]).expenses
+    #TODO Filter start & end date
+    expenses = @user.accounts.transactions.all(:order => [:date.asc])
     response = {}
     response[:labels] = expenses.group_by{|post|
         post.date.strftime("%b %Y")
@@ -72,9 +61,10 @@ get '/expenses/month' do
             :data =>
             response[:labels].map{|month|
                 if account[:data][month]
-                    account[:data][month].inject(0){|sum, trans| sum - trans.amount}
+                    account[:data][month].inject(0){|sum, trans| sum + trans.amount}
                 else
-                    0
+                    #nil won't be plotted in highcharts
+                    nil
                 end
             },
             :detailedData =>
@@ -90,30 +80,56 @@ get '/expenses/month' do
     response.to_json
 end
 
-post '/account/:name' do
-    @user = User.first
-    @account = Account.create(:name => params[:name], :user => @user)
-    @account.to_json
-end
-
-get '/account' do
+get '/accounts' do
     @user = User.first
     @user.accounts.to_json
 end
 
-post '/filter/:accountId/:filterRegexp' do
+get '/accounts/:id' do
     @user = User.first
-    @account = @user.accounts.get(params[:accountId])
-    regexp = params[:filterRegexp]
-    filter = Filter.create(:account => @account, :regexp => regexp)
-    puts filter.inspect
+    account = @user.accounts.get(params[:id])
+    account =
+        {
+            :name => account.name,
+            :id => account.id,
+            :filters => account.filters
+        }
+    account.to_json
 end
 
-get '/filter' do
+post '/accounts/:id' do
     @user = User.first
-    @user.accounts.filters.to_json
+    if params[:id] == 'newAccount'
+        #Create account
+        account = Account.create(
+            :user => @user,
+            :name => params[:name]
+        )
+    else
+        account = Account.get(params[:id])
+        account.name = params[:name]
+        account.save
+    end
+    if params[:filters]
+        params[:filters].each{|_, filter|
+            if filter[:id] != 'new'
+                f = account.filters.get(filter[:id])
+                f.regexp = filter[:regexp]
+                f.save
+            else
+                f = Filter.create(
+                    :account => account,
+                    :regexp => filter[:regexp]
+                )
+            end
+        }
+    end
+    #Run filters
+    withoutAccount = @user.transactions.noAccount()
+    filters = account.filters
+    withoutAccount.each{|transaction|
+        transaction.apply(filters)
+    }
+    return nil
 end
 
-get '/sass/default.sass' do
-    sass :default
-end

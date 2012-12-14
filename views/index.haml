@@ -7,6 +7,7 @@
     %script{:src => "/js/bootstrap.min.js"}
     %script{:src => '/js/transactions.js', :type => "text/javascript"}
     %script{:src => '/js/accounts.js', :type => "text/javascript"}
+    %script{:src => '/js/expenseChart.js', :type => "text/javascript"}
     %script{:src => '/js/base.js', :type => "text/javascript"}
     %link{:href => '/css/bootstrap.min.css', :rel => 'stylesheet'}
     %link{:href => '/sass/default.sass', :rel => 'stylesheet'}
@@ -18,8 +19,14 @@
           %li.dropdown
             %a.dropdown-toggle{:"data-toggle" => "dropdown"}
               Transaktioner
+              %span.transcount
               %b.caret
             %ul.dropdown-menu#transactions
+          %li.dropdown
+            %a.dropdown-toggle{:"data-toggle" => "dropdown"}
+              Konton
+              %b.caret
+            %ul.dropdown-menu#accounts
     #graphs
       #expenses
 
@@ -27,7 +34,30 @@
       .modal-header
         %h3 Kategorisera transaktion
       .modal-body
-        .transactionInfo
+        %table.transactionInfo.table
+          %thead
+            %tr
+              %th Datum
+              %th Mottagare
+              %th Summa
+              %th Använd?
+          %tbody
+        Konto: 
         %select.accountSelect{:type => 'select'}
+      .modal-footer
+        .submit{:class => 'btn btn-primary'} Spara
+
+    #accountDialog.modal{:class => "hide"}
+      .modal-header
+        %h3 Hantera konto
+      .modal-body
+        Namn: 
+        %input.name
+        %h3 Regex
+        %table.filter.table
+          %thead
+            %tr
+              %th Regex
+          %tbody
       .modal-footer
         .submit{:class => 'btn btn-primary'} Spara

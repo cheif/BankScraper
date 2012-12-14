@@ -58,13 +58,10 @@ class Transaction
         all(:account.not => nil)
     end
 
-    def self.expenses
-        all(:amount.lt => 0)
-    end
-
     def apply(filterList)
         filterList.each{|filter|
-            reg = /#{filter.regexp}/i
+            reg = /^#{filter.regexp}$/i
+            p self.receiver
             if reg.match(self.receiver)
                 self.account = filter.account
                 self.save
